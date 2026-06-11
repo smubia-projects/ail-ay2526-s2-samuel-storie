@@ -4,54 +4,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+### Frontend (`storybook-app/`)
 - **Dev server**: `npm run dev` (Vite)
 - **Build**: `npm run build`
 - **Lint**: `npm run lint` (ESLint 9 with flat config)
 - **Preview build**: `npm run preview`
 
+### Backend (`backend/`)
+- **Run**: `uvicorn app.main:app --reload --port 8080`
+- **Install**: `pip install -r requirements.txt`
+
 No test framework is configured.
 
 ## Architecture
 
-This is a **children's storybook generator** — a React SPA that lets authenticated users create AI-generated bedtime stories with illustrations.
+This is a **children's storybook generator** — a React SPA that lets anyone create
+AI-generated bedtime stories with illustrations. It is a public demo with **no
+accounts** and **no server-side database**.
 
 ### Tech Stack
 
 - React 19 + Vite 7 + React Router 7 (client-side routing)
 - Tailwind CSS 3.4 (do NOT upgrade to v4)
-- InsForge BaaS (`@insforge/sdk`) for auth, database, storage, and AI
+- FastAPI (Python 3.11) backend on Cloud Run
+- OpenRouter for AI inference (text + image)
+- Upstash Redis for rate limiting
 
-### Backend (InsForge)
+### Persistence — IndexedDB (library of up to 3)
 
-- **Client singleton**: `src/lib/insforgeClient.js` — all SDK calls go through `insforge`
-- **Database**: PostgreSQL via PostgREST. Schema in `schema.sql` (two tables: `storybooks`, `story_pages` with RLS)
-- **Auth**: Email/password via `insforge.auth`
-- **AI**: `insforge.ai.chat.completions` (GPT-4o-mini for story text) and `insforge.ai.images.generate` (Gemini for illustrations)
-- **Storage**: Generated images uploaded to `story-images` bucket via `insforge.storage`
-- **Environment**: `VITE_INSFORGE_URL` and `VITE_INSFORGE_ANON_KEY` in `.env.local`
+There is no database. Up to `MAX_STORYBOOKS` (3) storybooks are kept in the
+browser's **IndexedDB** (via `idb-keyval`) under the key `storie_storybooks`
+(the legacy single-book key `storie_storybook` is migrated on first read).
+When the library is full, creation is blocked — `CreateStoryPage` shows a
+"library full" notice and `HomePage` disables the create button until a story
+is deleted. All CRUD is async and lives in `src/lib/storybookStore.js`.
+`src/hooks/useStorybook.js` wraps it and returns the familiar `{ data, error }`
+shape.
 
-### Key Patterns
+### Backend (stateless AI proxy)
 
-- **Auth context**: `src/hooks/useAuth.jsx` provides `AuthProvider` + `useAuth()` hook. `AuthGuard` component wraps protected routes.
-- **Data hooks**: `src/hooks/useStorybook.js` wraps all database CRUD for storybooks/pages. `src/hooks/useGeneration.js` orchestrates AI generation pipeline.
-- **Generation pipeline** (`src/utils/generation.js`): Generates a 4-act story structure via AI chat, then generates images for all acts in parallel, uploads to storage, and saves pages to the database.
-- **SDK returns `{data, error}`** — all InsForge operations use this pattern, not exceptions.
-- **Database inserts require array format**: e.g., `.insert([{...}])`
+- `backend/app/main.py` — FastAPI app, CORS from `CORS_ORIGINS`, health check
+- `backend/app/routers/ai.py` — three stateless endpoints:
+  - `POST /api/generate-storybook` — one rate-limited call that produces the
+    full 4-act story (OpenRouter chat) plus an illustration per act (OpenRouter
+    images). Returns title + pages; the frontend saves them to IndexedDB.
+  - `POST /api/regenerate-image` — regenerate one image with feedback
+  - `POST /api/regenerate-text` — regenerate one paragraph with feedback
+- `backend/app/rate_limit.py` — Upstash Redis per-IP, per-action limiter
+  (`ratelimit:<salt>:<project>:<bucket>:<ip>`). Buckets per 5-day window —
+  `gen` (1), `img` (2), `txt` (5), all env-configurable. Silently disabled
+  if Upstash is unset.
+
+### Frontend API layer
+
+- `src/lib/apiClient.js` — single `apiPost` helper. Detects HTTP 429 and triggers
+  the rate-limit CTA via `setRateLimitHandler`.
+- `src/hooks/useGeneration.js` — orchestrates generation/regeneration: calls the
+  backend, then persists results to IndexedDB.
+- `src/hooks/useRateLimit.jsx` — context that surfaces `<RateLimitCTA />` on 429.
 
 ### Routes
 
-| Path | Component | Auth |
-|------|-----------|------|
-| `/login` | LoginPage | No |
-| `/` | HomePage | Yes |
-| `/create` | CreateStoryPage | Yes |
-| `/edit/:id` | EditStoryPage | Yes |
-| `/story/:id` | ViewStoryPage | No (public for published stories) |
+| Path | Component |
+|------|-----------|
+| `/` | HomePage (library) |
+| `/create` | CreateStoryPage |
+| `/edit/:id` | EditStoryPage |
+| `/story/:id` | ViewStoryPage (storytime mode) |
 
 ### Story Structure
 
-Each storybook has exactly 4 acts: Introduction, The Journey, The Gentle Conflict, The Sleepy Resolution. Visual style options and act titles are defined in `src/utils/constants.js`.
-
-### InsForge MCP Tools
-
-Infrastructure tasks (schema changes, bucket management, deployments) use InsForge MCP tools. Always call `fetch-docs` or `fetch-sdk-docs` before writing InsForge integration code to get up-to-date SDK patterns. See `AGENTS.md` for full MCP documentation.
+Each storybook has exactly 4 acts: Introduction, The Journey, The Gentle
+Conflict, The Sleepy Resolution. Visual style options are defined in
+`src/utils/constants.js`. The image safety prompts live in the backend
+(`backend/app/routers/ai.py`).

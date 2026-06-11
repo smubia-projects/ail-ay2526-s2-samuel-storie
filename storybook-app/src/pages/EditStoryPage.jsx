@@ -11,9 +11,7 @@ export default function EditStoryPage() {
   const [storybook, setStorybook] = useState(null);
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [polling, setPolling] = useState(false);
 
-  // Initial load
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -22,32 +20,12 @@ export default function EditStoryPage() {
       if (data) {
         setStorybook(data);
         setPages(data.story_pages || []);
-        setPolling(data.status === 'generating');
       }
       setLoading(false);
     };
     load();
     return () => { cancelled = true; };
   }, [id, getStorybook]);
-
-  // Poll for updates while generating
-  useEffect(() => {
-    if (!polling) return;
-
-    const interval = setInterval(async () => {
-      const { data } = await getStorybook(id);
-      if (data) {
-        setStorybook(data);
-        setPages(data.story_pages || []);
-
-        if (data.status !== 'generating') {
-          setPolling(false);
-        }
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [polling, id, getStorybook]);
 
   if (loading) {
     return (
@@ -85,29 +63,7 @@ export default function EditStoryPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {storybook.status === 'generating' ? (
-          <div className="text-center py-12 bg-retro-paper border-3 border-retro-dark shadow-retro">
-            <LoadingSpinner size="lg" />
-            <h2 className="text-2xl font-display font-bold text-retro-dark mt-6 mb-2">Creating Your Story...</h2>
-            <p className="text-retro-brown font-retro mb-4">This may take a minute or two</p>
-            <div className="flex justify-center gap-3">
-              {[1, 2, 3, 4].map((num) => (
-                <div
-                  key={num}
-                  className={`w-4 h-4 border-2 border-retro-dark ${
-                    pages.length >= num ? 'bg-retro-rust' : 'bg-retro-sepia'
-                  }`}
-                />
-              ))}
-            </div>
-            <p className="text-sm text-retro-brown font-retro mt-2">{pages.length}/4 pages generated</p>
-          </div>
-        ) : (
-          <DirectorsCut
-            storybook={storybook}
-            pages={pages}
-          />
-        )}
+        <DirectorsCut storybook={storybook} pages={pages} />
       </main>
     </div>
   );

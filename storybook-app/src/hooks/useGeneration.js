@@ -1,87 +1,77 @@
 import { useState, useCallback } from 'react';
-import { generateFullStorybook, generateImage, generateActText } from '../utils/generation';
-import { useStorybook } from './useStorybook';
+import { apiPost } from '../lib/apiClient';
+import * as store from '../lib/storybookStore';
 
 export function useGeneration() {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState(null);
-  const { createStoryPages, updateStorybookStatus, updateStoryPage } = useStorybook();
 
-  const generateStory = useCallback(async (storybookId, userId, prompt, childName, visualStyle) => {
+  // Generate a full storybook in one rate-limited backend call, then persist
+  // it to the IndexedDB library. Returns the new storybook's id on success.
+  const generateStory = useCallback(async ({ prompt, childName, visualStyle }) => {
     setGenerating(true);
     setError(null);
-    setProgress('Starting generation...');
+    setProgress('Crafting your story...');
 
     try {
-      const result = await generateFullStorybook(
-        storybookId,
-        userId,
+      const data = await apiPost('/api/generate-storybook', {
         prompt,
-        childName,
-        visualStyle,
-        {
-          onProgress: (msg) => {
-            setProgress(msg);
-            console.log('Progress:', msg);
-          },
-          onPageComplete: (page) => {
-            setProgress(`Page ${page.page_number} of 4 complete!`);
-          },
-          onError: (err) => {
-            console.error('Generation error:', err);
-            setError(err);
-          },
-        }
-      );
+        child_name: childName,
+        visual_style: visualStyle,
+      });
 
-      // Save pages to database
-      setProgress('Saving your storybook...');
-      const { error: saveError } = await createStoryPages(result.pages);
-      
-      if (saveError) {
-        console.error('Failed to save pages:', saveError);
-        throw new Error(`Failed to save pages: ${saveError.message || JSON.stringify(saveError)}`);
-      }
-
-      // Update storybook status
-      const { error: statusError } = await updateStorybookStatus(storybookId, 'ready');
-      
-      if (statusError) {
-        console.error('Failed to update status:', statusError);
-      }
+      const title = data.title || (prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt);
+      const book = await store.createStorybook({
+        title,
+        child_name: childName,
+        original_prompt: prompt,
+        visual_style: visualStyle,
+        status: 'ready',
+        pages: data.pages || [],
+      });
 
       setProgress('Complete!');
-      return { success: true, data: result };
+      return { success: true, id: book.id };
     } catch (err) {
       console.error('Story generation failed:', err);
       setError(err.message);
-      await updateStorybookStatus(storybookId, 'error');
       return { success: false, error: err.message };
     } finally {
       setGenerating(false);
     }
-  }, [createStoryPages, updateStorybookStatus]);
+  }, []);
 
-  const regeneratePageImage = useCallback(async (pageId, sceneDescription, visualStyle) => {
+  const regeneratePageImage = useCallback(async (page, visualStyle, feedback = '') => {
     try {
-      const imageUrl = await generateImage(sceneDescription, visualStyle);
-      await updateStoryPage(pageId, { image_url: imageUrl });
-      return { success: true, imageUrl };
+      const data = await apiPost('/api/regenerate-image', {
+        image_prompt: page.image_prompt,
+        visual_style: visualStyle,
+        feedback,
+      });
+      await store.updatePage(page.id, { image_url: data.image_url });
+      return { success: true, imageUrl: data.image_url };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, [updateStoryPage]);
+  }, []);
 
-  const regeneratePageText = useCallback(async (pageId, prompt, childName, actTitle, actNumber) => {
+  const regeneratePageText = useCallback(async (storybook, page, feedback = '') => {
     try {
-      const text = await generateActText(prompt, childName, actTitle, actNumber);
-      await updateStoryPage(pageId, { text_content: text });
-      return { success: true, text };
+      const data = await apiPost('/api/regenerate-text', {
+        prompt: storybook.original_prompt,
+        child_name: storybook.child_name,
+        act_title: page.act_title,
+        act_number: page.page_number,
+        current_text: page.text_content,
+        feedback,
+      });
+      await store.updatePage(page.id, { text_content: data.text_content });
+      return { success: true, text: data.text_content };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, [updateStoryPage]);
+  }, []);
 
   return {
     generating,

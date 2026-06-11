@@ -1,50 +1,46 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useStorybook } from '../hooks/useStorybook';
 import { useGeneration } from '../hooks/useGeneration';
+import { isLibraryFull, MAX_STORYBOOKS } from '../lib/storybookStore';
 import MagicPrompt from '../components/storybook/MagicPrompt';
 import Button from '../components/common/Button';
 
-const DUMMY_USER_ID = '00000000-0000-0000-0000-000000000000';
-
 export default function CreateStoryPage() {
   const navigate = useNavigate();
-  const { createStorybook } = useStorybook();
   const { generateStory } = useGeneration();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [libraryFull, setLibraryFull] = useState(false);
+  const [checkingLibrary, setCheckingLibrary] = useState(true);
+
+  useEffect(() => {
+    isLibraryFull().then((full) => {
+      setLibraryFull(full);
+      setCheckingLibrary(false);
+    });
+  }, []);
 
   const handleSubmit = async ({ prompt, childName, visualStyle }) => {
+    // Up to MAX_STORYBOOKS are kept on this device — block creation past that.
+    if (await isLibraryFull()) {
+      setLibraryFull(true);
+      return;
+    }
+
     setIsGenerating(true);
 
-    // Generate a title from the prompt
-    const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
+    const result = await generateStory({ prompt, childName, visualStyle });
 
-    // Create the storybook record
-    const { data: storybook, error } = await createStorybook({
-      title,
-      childName,
-      prompt,
-      visualStyle,
-      userId: DUMMY_USER_ID,
-    });
-
-    if (error) {
+    if (!result.success) {
       setIsGenerating(false);
-      alert('Failed to create storybook: ' + (error.message || JSON.stringify(error)));
+      // A 429 (rate limit) and 503 (paused) surface their own modals
+      // automatically; only alert on other failures.
+      if (result.error && !/rate limit|paused/i.test(result.error)) {
+        alert('Failed to create storybook: ' + result.error);
+      }
       return;
     }
 
-    if (!storybook) {
-      setIsGenerating(false);
-      alert('Failed to create storybook: no data returned');
-      return;
-    }
-
-    // Trigger generation in background, then navigate
-    generateStory(storybook.id, DUMMY_USER_ID, prompt, childName, visualStyle);
-
-    // Navigate to the edit page
-    navigate(`/edit/${storybook.id}`);
+    navigate(`/edit/${result.id}`);
   };
 
   return (
@@ -62,7 +58,23 @@ export default function CreateStoryPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-12">
-        <MagicPrompt onSubmit={handleSubmit} isGenerating={isGenerating} />
+        {checkingLibrary ? null : libraryFull ? (
+          <div className="max-w-xl mx-auto text-center bg-retro-paper border-3 border-retro-dark shadow-retro p-8">
+            <p className="text-3xl mb-4">📚</p>
+            <h2 className="text-2xl font-display font-bold text-retro-dark mb-3">
+              Your library is full
+            </h2>
+            <p className="text-retro-brown font-retro mb-6">
+              You can keep up to {MAX_STORYBOOKS} storybooks on this device.
+              Delete one from your library to make room for a new story.
+            </p>
+            <Link to="/">
+              <Button size="lg">Back to Library</Button>
+            </Link>
+          </div>
+        ) : (
+          <MagicPrompt onSubmit={handleSubmit} isGenerating={isGenerating} />
+        )}
       </main>
     </div>
   );

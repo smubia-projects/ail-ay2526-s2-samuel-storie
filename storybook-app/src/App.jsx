@@ -1,37 +1,35 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './hooks/useAuth';
-import AuthGuard from './components/auth/AuthGuard';
+import { RateLimitProvider, useRateLimit } from './hooks/useRateLimit';
+import RateLimitCTA from './components/RateLimitCTA';
+import PausedNotice from './components/PausedNotice';
 import HomePage from './pages/HomePage';
 import CreateStoryPage from './pages/CreateStoryPage';
 import EditStoryPage from './pages/EditStoryPage';
 import ViewStoryPage from './pages/ViewStoryPage';
-import LoginPage from './pages/LoginPage';
+
+function StatusOverlay() {
+  const {
+    isRateLimited, queriesMade, dismissRateLimit,
+    isPaused, pausedMessage, dismissPaused,
+  } = useRateLimit();
+  if (isPaused) return <PausedNotice message={pausedMessage} onDismiss={dismissPaused} />;
+  if (isRateLimited) return <RateLimitCTA queriesMade={queriesMade} onDismiss={dismissRateLimit} />;
+  return null;
+}
 
 function App() {
   return (
-    <AuthProvider>
+    <RateLimitProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={
-            <AuthGuard>
-              <HomePage />
-            </AuthGuard>
-          } />
-          <Route path="/create" element={
-            <AuthGuard>
-              <CreateStoryPage />
-            </AuthGuard>
-          } />
-          <Route path="/edit/:id" element={
-            <AuthGuard>
-              <EditStoryPage />
-            </AuthGuard>
-          } />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/create" element={<CreateStoryPage />} />
+          <Route path="/edit/:id" element={<EditStoryPage />} />
           <Route path="/story/:id" element={<ViewStoryPage />} />
         </Routes>
+        <StatusOverlay />
       </BrowserRouter>
-    </AuthProvider>
+    </RateLimitProvider>
   );
 }
 

@@ -87,6 +87,29 @@ export async function createStorybook({ title, child_name, original_prompt, visu
   return book;
 }
 
+export async function saveSharedStorybook(story) {
+  const books = await getBooks();
+  if (books.length >= MAX_STORYBOOKS) {
+    throw new Error(
+      `Your library holds ${MAX_STORYBOOKS} storybooks. Make a little room before keeping this one.`
+    );
+  }
+  const now = new Date().toISOString();
+  const book = {
+    id: uuid(),
+    title: story.title,
+    child_name: story.child_name || '',
+    original_prompt: story.original_prompt || '',
+    visual_style: story.visual_style || '',
+    status: 'ready',
+    created_at: now,
+    updated_at: now,
+    pages: (story.pages || []).map((page) => ({ id: uuid(), ...page })),
+  };
+  await saveBooks([...books, book]);
+  return book;
+}
+
 export async function updateStorybook(id, updates) {
   const books = await getBooks();
   const idx = books.findIndex((b) => b.id === id);

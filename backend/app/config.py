@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     openrouter_model: str = "openai/gpt-4o-mini"
     openrouter_image_model: str = "google/gemini-2.5-flash-image"
     cors_origins: str = "http://localhost:5173"
+    database_url: str = ""
     upstash_redis_rest_url: str = ""
     upstash_redis_rest_token: str = ""
     upstash_redis_url: str = ""

@@ -16,12 +16,13 @@ A public, no-accounts demo that generates AI bedtime storybooks.
 
 - **Frontend** (`storybook-app/`): React 19 + Vite 7 SPA on **Vercel**.
   Tailwind CSS 3.4 (do NOT upgrade to v4).
-- **Backend** (`backend/`): stateless **FastAPI** AI proxy on
-  **Google Cloud Run**. No database, no auth.
+- **Backend** (`backend/`): **FastAPI** API on **Google Cloud Run**. Neon stores
+  expiring shared-story snapshots; a first-party anonymous browser cookie is
+  hashed for lightweight ownership (there are still no accounts).
 - **AI**: all inference goes through **OpenRouter** (text + image).
 - **Rate limiting**: **Upstash Redis**, per-IP, per-action.
-- **Persistence**: the browser only. One storybook at a time, stored in
-  **IndexedDB** via `idb-keyval` (`src/lib/storybookStore.js`).
+- **Persistence**: personal books stay in **IndexedDB** via `idb-keyval`.
+  Magic-link snapshots live in Neon for seven days.
 
 ## Key conventions
 
@@ -37,5 +38,5 @@ A public, no-accounts demo that generates AI bedtime storybooks.
 ## Conventions to preserve
 
 - SDK-free frontend: do not reintroduce a BaaS SDK.
-- Keep secrets in env vars (OpenRouter key, Upstash creds) — never in source.
+- Keep secrets in env vars (OpenRouter key, Upstash creds, Neon URL) — never in source.
 - Tailwind stays on 3.4.

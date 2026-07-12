@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Button from '../common/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
+import StoryActions from './StoryActions';
 
 export default function StorybookList({ storybooks, loading, onDelete }) {
   if (loading) {
@@ -97,6 +98,11 @@ export default function StorybookList({ storybooks, loading, onDelete }) {
                 </Button>
               )}
             </div>
+            {book.status === 'ready' && (
+              <div className="mt-3 pt-3 border-t-2 border-retro-sepia">
+                <StoryActions storybook={book} compact />
+              </div>
+            )}
           </div>
         </div>
       ))}

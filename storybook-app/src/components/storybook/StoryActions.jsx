@@ -4,7 +4,7 @@ import ShareStoryModal from './ShareStoryModal';
 import { createStoryShare } from '../../lib/shareStory';
 import { downloadStoryImages } from '../../lib/downloadStory';
 
-export default function StoryActions({ storybook, compact = false }) {
+export default function StoryActions({ storybook, compact = false, align = 'end' }) {
   const [sharing, setSharing] = useState(false);
   const [share, setShare] = useState(null);
   const [downloading, setDownloading] = useState(false);
@@ -36,7 +36,7 @@ export default function StoryActions({ storybook, compact = false }) {
 
   return (
     <>
-      <div className={`flex gap-2 ${compact ? 'w-full' : 'flex-wrap justify-end'}`}>
+      <div className={`flex gap-2 ${compact ? 'w-full' : `flex-wrap ${align === 'center' ? 'justify-center' : 'justify-end'}`}`}>
         <Button size={compact ? 'sm' : 'md'} variant="secondary" className={compact ? 'flex-1' : ''} onClick={openShare} disabled={sharing}>
           {sharing ? 'Weaving Link...' : 'Share'}
         </Button>

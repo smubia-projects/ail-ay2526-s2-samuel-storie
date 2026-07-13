@@ -15,6 +15,7 @@ export default function SharedStoryPage() {
   const [saving, setSaving] = useState(false);
   const [savedBook, setSavedBook] = useState(null);
   const [saveMessage, setSaveMessage] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -45,6 +46,25 @@ export default function SharedStoryPage() {
     }
   };
 
+  const shareStory = async () => {
+    const shareData = {
+      title: story.title,
+      text: `Come read “${story.title}” with me on Storie.`,
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setShareMessage('Story sent on its way!');
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        setShareMessage('Story link copied!');
+      }
+    } catch (shareError) {
+      if (shareError.name !== 'AbortError') setShareMessage('The link could not be shared just now.');
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-retro-dark flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
   }
@@ -64,7 +84,25 @@ export default function SharedStoryPage() {
 
   return (
     <>
-      <StorytimeMode storybook={story} pages={story.pages} />
+      <StorytimeMode
+        storybook={story}
+        pages={story.pages}
+        exitLabel="Back to Storie"
+        endActions={(
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Link to="/"><Button size="lg" className="w-full">Back to Storie</Button></Link>
+              <Link to="/create"><Button size="lg" variant="secondary" className="w-full">Create Your Own</Button></Link>
+              <Button size="lg" variant="secondary" className="w-full" onClick={keepStory} disabled={saving || savedBook}>
+                {savedBook ? 'Saved to My Library' : saving ? 'Finding a Shelf...' : 'Save to My Library'}
+              </Button>
+              <Button size="lg" variant="secondary" className="w-full" onClick={shareStory}>Share This Story</Button>
+            </div>
+            {saveMessage && <p className={`text-sm font-retro ${savedBook ? 'text-retro-green' : 'text-retro-red'}`}>{saveMessage}</p>}
+            {shareMessage && <p className="text-sm font-retro text-retro-green">{shareMessage}</p>}
+          </div>
+        )}
+      />
       {showOpening && (
         <div className="fixed inset-0 z-[1100] bg-retro-dark/90 backdrop-blur-md flex items-center justify-center p-4">
           <section role="dialog" aria-modal="true" aria-labelledby="shared-story-title" className="w-full max-w-xl bg-retro-paper border-3 border-retro-dark shadow-retro-lg p-8 text-center">

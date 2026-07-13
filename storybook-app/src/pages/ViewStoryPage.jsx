@@ -4,6 +4,7 @@ import { useStorybook } from '../hooks/useStorybook';
 import StorytimeMode from '../components/storybook/StorytimeMode';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Button from '../components/common/Button';
+import StoryActions from '../components/storybook/StoryActions';
 
 export default function ViewStoryPage() {
   const { id } = useParams();
@@ -45,5 +46,24 @@ export default function ViewStoryPage() {
     );
   }
 
-  return <StorytimeMode storybook={storybook} pages={pages} />;
+  const storyWithPages = { ...storybook, pages };
+
+  return (
+    <StorytimeMode
+      storybook={storybook}
+      pages={pages}
+      endActions={(
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link to="/"><Button size="lg">Back to Your Storybooks</Button></Link>
+            <Link to="/create"><Button size="lg" variant="secondary">Create Another Story</Button></Link>
+          </div>
+          <StoryActions storybook={storyWithPages} align="center" />
+          <p className="text-xs text-retro-brown font-retro">
+            This story is already safe in your library on this device.
+          </p>
+        </div>
+      )}
+    />
+  );
 }

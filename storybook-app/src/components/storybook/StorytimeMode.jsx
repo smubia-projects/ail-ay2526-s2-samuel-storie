@@ -1,16 +1,27 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useSwipeable } from 'react-swipeable';
 import Button from '../common/Button';
 
-export default function StorytimeMode({ storybook, pages }) {
+export default function StorytimeMode({
+  storybook,
+  pages,
+  exitLabel = 'Back to Library',
+  exitTo = '/',
+  endActions = null,
+}) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const sortedPages = [...pages].sort((a, b) => a.page_number - b.page_number);
+  const hasEndPage = Boolean(endActions);
+  const lastPageIndex = sortedPages.length - 1;
+  const endPageIndex = sortedPages.length;
+  const atEnd = hasEndPage && currentPage === endPageIndex;
 
   const handlers = useSwipeable({
     onSwipedLeft: () => {
-      if (currentPage < sortedPages.length - 1) {
+      if (currentPage < (hasEndPage ? endPageIndex : lastPageIndex)) {
         setCurrentPage(prev => prev + 1);
       }
     },
@@ -36,9 +47,13 @@ export default function StorytimeMode({ storybook, pages }) {
     }
   };
 
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+  };
+
   const currentPageData = sortedPages[currentPage];
 
-  if (!currentPageData) {
+  if (!sortedPages.length) {
     return <div className="text-center py-12">No pages to display</div>;
   }
 
@@ -49,21 +64,41 @@ export default function StorytimeMode({ storybook, pages }) {
     >
       {/* Header */}
       <div className={`${isFullscreen ? 'bg-retro-paper border-b-3 border-retro-dark flex-shrink-0' : 'absolute top-0 left-0 right-0 bg-gradient-to-b from-retro-dark/90 to-transparent'} p-4 flex justify-between items-center z-20`}>
-        <div className={`${isFullscreen ? 'text-retro-dark' : 'text-retro-cream'}`}>
+        <div className={`min-w-0 mr-3 ${isFullscreen ? 'text-retro-dark' : 'text-retro-cream'}`}>
           <h1 className="text-xl font-display font-bold truncate">{storybook.title}</h1>
           <p className={`text-sm font-retro ${isFullscreen ? 'text-retro-brown' : 'text-retro-sepia'}`}>for {storybook.child_name}</p>
         </div>
-        <Button 
-          variant="secondary" 
-          onClick={toggleFullscreen} 
-          className={`${isFullscreen ? 'bg-retro-rust text-retro-cream border-retro-dark hover:bg-retro-dark' : 'bg-retro-paper text-retro-dark hover:bg-retro-sepia'}`}
-        >
-          {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link to={exitTo} onClick={exitFullscreen}>
+            <Button variant="secondary" size="sm" className="bg-retro-paper text-retro-dark hover:bg-retro-sepia">
+              {exitLabel}
+            </Button>
+          </Link>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={toggleFullscreen}
+            className={`${isFullscreen ? 'bg-retro-rust text-retro-cream border-retro-dark hover:bg-retro-dark' : 'bg-retro-paper text-retro-dark hover:bg-retro-sepia'}`}
+          >
+            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          </Button>
+        </div>
       </div>
 
       {/* Main Story View */}
-      {isFullscreen ? (
+      {atEnd ? (
+        <div className="min-h-screen flex items-center justify-center px-4 pt-24 pb-20">
+          <section className="w-full max-w-2xl bg-retro-paper border-3 border-retro-dark shadow-retro-lg p-8 md:p-12 text-center">
+            <span className="text-6xl font-display text-retro-gold">✦</span>
+            <p className="retro-label mt-3">And they all slept soundly</p>
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-retro-dark mt-3">The End</h2>
+            <p className="text-retro-brown font-storybook text-lg mt-4">
+              You’ve finished “{storybook.title}”. Where will the next story take you?
+            </p>
+            <div className="mt-8">{endActions}</div>
+          </section>
+        </div>
+      ) : isFullscreen ? (
         // Fullscreen layout: image on left, text on right - side by side
         <div className="flex flex-1 h-[calc(100vh-80px)]">
           {/* Image Section - Left side */}
@@ -84,7 +119,7 @@ export default function StorytimeMode({ storybook, pages }) {
                 </svg>
               </button>
             )}
-            {currentPage < sortedPages.length - 1 && (
+            {currentPage < (hasEndPage ? endPageIndex : lastPageIndex) && (
               <button
                 onClick={() => setCurrentPage(prev => prev + 1)}
                 className="absolute right-[45%] top-1/2 -translate-y-1/2 bg-retro-paper/80 border-3 border-retro-dark text-retro-dark p-2 hover:bg-retro-paper transition-colors z-10"
@@ -158,7 +193,7 @@ export default function StorytimeMode({ storybook, pages }) {
           </svg>
         </button>
       )}
-      {!isFullscreen && currentPage < sortedPages.length - 1 && (
+      {!isFullscreen && currentPage < (hasEndPage ? endPageIndex : lastPageIndex) && (
         <button
           onClick={() => setCurrentPage(prev => prev + 1)}
           className="absolute right-4 top-1/2 -translate-y-1/2 bg-retro-paper border-3 border-retro-dark text-retro-dark p-3 hover:bg-retro-sepia transition-colors z-10"
@@ -170,7 +205,7 @@ export default function StorytimeMode({ storybook, pages }) {
       )}
 
       {/* Page Indicators for normal mode */}
-      {!isFullscreen && (
+      {!isFullscreen && !atEnd && (
         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-3 z-10">
           {sortedPages.map((_, index) => (
             <button
@@ -183,11 +218,18 @@ export default function StorytimeMode({ storybook, pages }) {
               }`}
             />
           ))}
+          {hasEndPage && (
+            <button
+              onClick={() => goToPage(endPageIndex)}
+              aria-label="Go to the end of the story"
+              className="w-4 h-4 border-2 border-retro-cream bg-transparent hover:bg-retro-sepia transition-colors"
+            />
+          )}
         </div>
       )}
 
       {/* Swipe Hint - only in normal mode */}
-      {!isFullscreen && (
+      {!isFullscreen && !atEnd && (
         <div className="absolute bottom-12 left-0 right-0 text-center text-retro-cream/60 text-sm font-retro">
           Swipe or use arrows to navigate
         </div>

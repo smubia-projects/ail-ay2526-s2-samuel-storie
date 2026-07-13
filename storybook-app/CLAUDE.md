@@ -20,7 +20,7 @@ No test framework is configured.
 
 This is a **children's storybook generator** — a React SPA that lets anyone create
 AI-generated bedtime stories with illustrations. It is a public demo with **no
-accounts** and **no server-side database**.
+accounts**. Personal books stay in the browser; Neon holds seven-day shared snapshots.
 
 ### Tech Stack
 
@@ -32,7 +32,7 @@ accounts** and **no server-side database**.
 
 ### Persistence — IndexedDB (library of up to 3)
 
-There is no database. Up to `MAX_STORYBOOKS` (3) storybooks are kept in the
+Up to `MAX_STORYBOOKS` (3) personal storybooks are kept in the
 browser's **IndexedDB** (via `idb-keyval`) under the key `storie_storybooks`
 (the legacy single-book key `storie_storybook` is migrated on first read).
 When the library is full, creation is blocked — `CreateStoryPage` shows a
@@ -40,6 +40,9 @@ When the library is full, creation is blocked — `CreateStoryPage` shows a
 is deleted. All CRUD is async and lives in `src/lib/storybookStore.js`.
 `src/hooks/useStorybook.js` wraps it and returns the familiar `{ data, error }`
 shape.
+
+Shared links are separate snapshots in Neon. `src/lib/shareStory.js` calls the
+sharing API, while a random first-party cookie supplies anonymous ownership.
 
 ### Backend (stateless AI proxy)
 
@@ -71,6 +74,7 @@ shape.
 | `/create` | CreateStoryPage |
 | `/edit/:id` | EditStoryPage |
 | `/story/:id` | ViewStoryPage (storytime mode) |
+| `/shared/:token` | SharedStoryPage (shared opening + storytime) |
 
 ### Story Structure
 

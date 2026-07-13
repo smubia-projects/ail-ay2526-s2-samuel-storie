@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import CreateStoryPage from './pages/CreateStoryPage';
 import EditStoryPage from './pages/EditStoryPage';
 import ViewStoryPage from './pages/ViewStoryPage';
+import SharedStoryPage from './pages/SharedStoryPage';
 
 function StatusOverlay() {
   const {
@@ -26,6 +27,7 @@ function App() {
           <Route path="/create" element={<CreateStoryPage />} />
           <Route path="/edit/:id" element={<EditStoryPage />} />
           <Route path="/story/:id" element={<ViewStoryPage />} />
+          <Route path="/shared/:token" element={<SharedStoryPage />} />
         </Routes>
         <StatusOverlay />
       </BrowserRouter>

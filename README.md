@@ -12,6 +12,8 @@ This is a zero-friction public demo: there are no accounts. Up to 3 storybooks a
 - **Fullscreen Storytime Mode**: Side-by-side layout for immersive reading experience
 - **Swipe Navigation**: Touch-friendly page navigation for tablets
 - **Multiple Visual Styles**: Watercolor, Claymation, Pastel, Cartoon, and Digital Art
+- **Seven-Day Story Links**: Share a story with a magic link or QR code
+- **Keepsake Downloads**: Save four illustrated story cards and a Storie credit card as PNG files
 
 ## Story Structure
 
@@ -24,8 +26,8 @@ Each generated storybook follows a 4-act structure:
 
 ## Architecture
 
-- **Frontend** (`storybook-app/`): React 19 + Vite 7 SPA, deployed on Vercel. One storybook is stored client-side in IndexedDB (via `idb-keyval`).
-- **Backend** (`backend/`): Stateless FastAPI AI proxy, deployed on Google Cloud Run. Proxies story/image generation through OpenRouter and applies per-IP rate limiting via Upstash Redis. Holds no database and no user state.
+- **Frontend** (`storybook-app/`): React 19 + Vite 7 SPA, deployed on Vercel. Up to three personal storybooks are stored client-side in IndexedDB.
+- **Backend** (`backend/`): FastAPI API deployed on Google Cloud Run. It proxies OpenRouter generation, applies rate limiting through Upstash Redis, and stores seven-day shared snapshots in Neon Postgres.
 
 ## Tech Stack
 
@@ -33,7 +35,7 @@ Each generated storybook follows a 4-act structure:
 - **Backend**: FastAPI (Python 3.11) on Cloud Run
 - **AI Inference**: OpenRouter (text + image models)
 - **Rate Limiting**: Upstash Redis
-- **Persistence**: Browser IndexedDB via `idb-keyval` (no server-side database)
+- **Persistence**: Browser IndexedDB for personal books; Neon Postgres for expiring shared snapshots
 
 ## Local Development
 
@@ -68,6 +70,7 @@ See `backend/.env.example`. Key vars:
 - `OPENROUTER_MODEL` — text model (default `openai/gpt-4o-mini`)
 - `OPENROUTER_IMAGE_MODEL` — image model (default `openai/dall-e-2`)
 - `CORS_ORIGINS` — comma-separated allowed origins
+- `DATABASE_URL` — Neon Postgres connection string ending in `?sslmode=require`
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — rate limiting (optional; disabled if unset; short names without `REST_` also accepted)
 - `RATE_LIMIT_GENERATE_MAX` / `RATE_LIMIT_IMAGE_MAX` / `RATE_LIMIT_TEXT_MAX` — per-action limits (defaults `1` / `2` / `5`)
 - `RATE_LIMIT_WINDOW_SECONDS` — rolling window (default `432000`, 5 days)
@@ -84,6 +87,8 @@ See `backend/.env.example`. Key vars:
 | `POST /api/generate-storybook` | Generate a 4-act story + illustrations | 1 |
 | `POST /api/regenerate-image` | Regenerate one page's image with feedback | 2 |
 | `POST /api/regenerate-text` | Regenerate one page's text with feedback | 5 |
+| `POST /api/shares` | Create or refresh a seven-day story link | — |
+| `GET /api/shares/:token` | Open a shared story | — |
 
 ## Frontend Routes
 
@@ -93,6 +98,7 @@ See `backend/.env.example`. Key vars:
 | `/create` | Create a new storybook |
 | `/edit/:id` | Edit storybook pages |
 | `/story/:id` | Storytime reading mode |
+| `/shared/:token` | Shared-story opening and reading mode |
 
 ## Visual Styles
 

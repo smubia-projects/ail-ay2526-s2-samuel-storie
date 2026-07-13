@@ -5,6 +5,7 @@ import Button from '../common/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 import { useGeneration } from '../../hooks/useGeneration';
+import StoryActions from './StoryActions';
 
 export default function DirectorsCut({
   storybook,
@@ -72,7 +73,8 @@ export default function DirectorsCut({
           <h1 className="text-3xl font-display font-bold text-retro-dark">{storybook.title}</h1>
           <p className="text-retro-brown font-retro">for {storybook.child_name}</p>
         </div>
-        <div className="text-right">
+        <div className="text-right space-y-3">
+          <StoryActions storybook={{ ...storybook, pages }} />
           <Button onClick={handleFinish} size="lg">
             Start Storytime
           </Button>

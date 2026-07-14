@@ -2,9 +2,10 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    openrouter_api_key: str = ""
-    openrouter_model: str = "openai/gpt-4o-mini"
-    openrouter_image_model: str = "google/gemini-2.5-flash-image"
+    api_key: str = ""
+    model_name: str = "openai/gpt-4o-mini"
+    image_model_name: str = "google/gemini-2.5-flash-image"
+    api_base_url: str = "https://openrouter.ai/api/v1"
     cors_origins: str = "http://localhost:5173"
     database_url: str = ""
     upstash_redis_rest_url: str = ""

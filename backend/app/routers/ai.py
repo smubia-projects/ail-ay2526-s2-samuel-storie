@@ -31,13 +31,13 @@ NO_TEXT_INSTRUCTION = (
 
 async def _openrouter_chat(client: httpx.AsyncClient, messages: list, temperature: float = 0.7) -> str:
     resp = await client.post(
-        "https://openrouter.ai/api/v1/chat/completions",
+        f"{settings.api_base_url}/chat/completions",
         headers={
-            "Authorization": f"Bearer {settings.openrouter_api_key}",
+            "Authorization": f"Bearer {settings.api_key}",
             "Content-Type": "application/json",
         },
         json={
-            "model": settings.openrouter_model,
+            "model": settings.model_name,
             "messages": messages,
             "temperature": temperature,
         },
@@ -53,13 +53,13 @@ async def _openrouter_image(client: httpx.AsyncClient, prompt: str) -> str:
     # through chat completions with modalities, and requires an image-output
     # model (e.g. google/gemini-2.5-flash-image).
     resp = await client.post(
-        "https://openrouter.ai/api/v1/chat/completions",
+        f"{settings.api_base_url}/chat/completions",
         headers={
-            "Authorization": f"Bearer {settings.openrouter_api_key}",
+            "Authorization": f"Bearer {settings.api_key}",
             "Content-Type": "application/json",
         },
         json={
-            "model": settings.openrouter_image_model,
+            "model": settings.image_model_name,
             "messages": [{"role": "user", "content": prompt}],
             "modalities": ["image", "text"],
         },
@@ -68,16 +68,25 @@ async def _openrouter_image(client: httpx.AsyncClient, prompt: str) -> str:
     if resp.status_code != 200:
         raise HTTPException(status_code=502, detail=f"OpenRouter image error: {resp.text}")
 
-    images = resp.json()["choices"][0]["message"].get("images") or []
+    message = resp.json()["choices"][0]["message"]
+    images = message.get("images") or []
+    url = ""
     if images:
         url = images[0].get("image_url", {}).get("url", "")
-        if url.startswith("data:"):
-            return url
-        if url:
-            img_resp = await client.get(url, timeout=30.0)
-            img_resp.raise_for_status()
-            return f"data:image/png;base64,{base64.b64encode(img_resp.content).decode()}"
-    raise HTTPException(status_code=502, detail="No image data in OpenRouter response")
+    
+    if not url:
+        content = message.get("content") or ""
+        match = re.search(r"!\[.*?\]\((.*?)\)", content)
+        if match:
+            url = match.group(1)
+
+    if url.startswith("data:"):
+        return url
+    if url:
+        img_resp = await client.get(url, timeout=30.0)
+        img_resp.raise_for_status()
+        return f"data:image/png;base64,{base64.b64encode(img_resp.content).decode()}"
+    raise HTTPException(status_code=502, detail="No image data in OpenRouter/API response")
 
 
 def _extract_json(text: str) -> dict:

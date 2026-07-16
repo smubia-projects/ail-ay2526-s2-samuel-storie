@@ -7,9 +7,9 @@ const PROJECT_CONFIG = {
   headline: 'Loved making your storybook?',
   description: "You've used your {count} free AI generation(s) for this demo. In SMUBIA's AI Lodge, you'll learn to build AI apps like this from scratch.",
   programme: 'AI Lodge',
-  programmeLink: 'https://www.smubia.com/ai-lodge',
+  programmeLink: 'https://smu.opine.asia/survey?id=d9968e73-86c2-42e2-a2b9-fa7ef7289a3c',
   githubLink: 'https://github.com/smubia-projects/ail-ay2526-s2-samuel-storie',
-  showcaseLink: 'https://www.smubia.com/showcase',
+  showcaseLink: 'https://www.smubia.com/Projects',
 };
 
 function hexToHsl(hex) {
@@ -120,7 +120,18 @@ export default function RateLimitCTA({ queriesMade, onDismiss }) {
               boxShadow: `0 4px 14px hsla(${h}, ${s}%, ${l}%, 0.4)`,
             }}
           >
-            🚀 Join {PROJECT_CONFIG.programme}
+            Join {PROJECT_CONFIG.programme}
+            <span className="absolute right-4 opacity-50">→</span>
+          </a>
+
+          <a
+            href={PROJECT_CONFIG.showcaseLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative flex items-center justify-center w-full py-3 px-4 rounded-lg text-white/90 font-display text-sm tracking-wide border border-white/10 hover:border-white/25 transition-colors"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+          >
+            Explore other projects
             <span className="absolute right-4 opacity-50">→</span>
           </a>
 
@@ -134,18 +145,7 @@ export default function RateLimitCTA({ queriesMade, onDismiss }) {
             <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
             </svg>
-            Self-host from GitHub
-            <span className="absolute right-4 opacity-50">→</span>
-          </a>
-
-          <a
-            href={PROJECT_CONFIG.showcaseLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative flex items-center justify-center w-full py-3 px-4 rounded-lg text-white/90 font-display text-sm tracking-wide border border-white/10 hover:border-white/25 transition-colors"
-            style={{ background: 'rgba(255,255,255,0.06)' }}
-          >
-            🌐 Explore other projects
+            View on GitHub
             <span className="absolute right-4 opacity-50">→</span>
           </a>
 

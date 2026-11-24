@@ -9,7 +9,7 @@ const PROJECT_CONFIG = {
   programme: 'AI Lodge',
   programmeLink: 'https://smu.opine.asia/survey?id=d9968e73-86c2-42e2-a2b9-fa7ef7289a3c',
   githubLink: 'https://github.com/smubia-projects/ail-ay2526-s2-samuel-storie',
-  showcaseLink: 'https://www.smubia.com/Projects',
+  showcaseLink: 'https://www.smubia.com/projects',
 };
 
 function hexToHsl(hex) {
